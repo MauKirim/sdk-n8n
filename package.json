@@ -20,7 +20,7 @@
     "type": "git",
     "url": "git+https://github.com/MauKirim/sdk-n8n.git"
   },
-  "main": "index.js",
+  "main": "dist/nodes/MauKirim/MauKirim.node.js",
   "scripts": {
     "build": "tsc && node scripts/copy-assets.mjs",
     "test": "jest"

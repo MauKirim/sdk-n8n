@@ -17,6 +17,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-      - run: npm ci
+      # n8n-workflow pulls in isolated-vm, which has no prebuilt binary for every Node ABI and then
+      # fails to compile from source. Nothing here needs it at runtime, so native scripts are skipped.
+      - run: npm ci --ignore-scripts
       - run: npm run build
       - run: npm test

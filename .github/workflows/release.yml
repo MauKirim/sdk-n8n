@@ -25,7 +25,7 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts # see ci.yml: isolated-vm has no prebuilt binary for every ABI
 
       - name: Tag must match package.json version
         run: |
