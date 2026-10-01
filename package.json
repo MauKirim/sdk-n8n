@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-maukirim",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "n8n community node for MauKirim — WhatsApp OTP codes, templated notifications and managed rented numbers.",
   "keywords": [
     "n8n-community-node-package",
@@ -13,7 +13,8 @@
   "license": "MIT",
   "author": {
     "name": "MauKirim",
-    "url": "https://maukirim.com"
+    "url": "https://maukirim.com",
+    "email": "hello@maukirim.com"
   },
   "homepage": "https://maukirim.com",
   "repository": {
