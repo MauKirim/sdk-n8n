@@ -1,0 +1,54 @@
+{
+  "name": "n8n-nodes-maukirim",
+  "version": "1.0.0",
+  "description": "n8n community node for MauKirim — WhatsApp OTP codes, templated notifications and managed rented numbers.",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "maukirim",
+    "whatsapp",
+    "otp",
+    "notification"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "MauKirim",
+    "url": "https://maukirim.com"
+  },
+  "homepage": "https://maukirim.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MauKirim/sdk-n8n.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/MauKirimApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/MauKirim/MauKirim.node.js"
+    ]
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.2",
+    "jest": "^29.7.0",
+    "n8n-workflow": "^2.16.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
