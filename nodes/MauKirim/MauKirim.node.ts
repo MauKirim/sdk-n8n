@@ -244,6 +244,7 @@ export class MauKirim implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'MauKirim',
 		name: 'mauKirim',
+		icon: 'file:maukirim.svg',
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',

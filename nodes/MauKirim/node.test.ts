@@ -6,6 +6,8 @@ import {
 	NodeConnectionTypes,
 	NodeOperationError,
 } from 'n8n-workflow';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { MauKirim } from './MauKirim.node';
 import { HttpRequestOptions } from './transport';
@@ -100,6 +102,11 @@ describe('MauKirim description', () => {
 		expect(node.description.defaults).toEqual({ name: 'MauKirim' });
 		expect(node.description.inputs).toEqual([NodeConnectionTypes.Main]);
 		expect(node.description.outputs).toEqual([NodeConnectionTypes.Main]);
+	});
+
+	it('bundles the icon it declares, so n8n renders the node', () => {
+		expect(node.description.icon).toBe('file:maukirim.svg');
+		expect(existsSync(join(__dirname, 'maukirim.svg'))).toBe(true);
 	});
 
 	it('offers the four resources', () => {

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="mk-leaf-export" x1="28" y1="12" x2="68" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2e5a4b" />
+      <stop offset="100%" stop-color="#3d7262" />
+    </linearGradient>
+  </defs>
+
+  <style>
+    .mk-moon { fill: #182822; }
+    .mk-leaf { fill: url(#mk-leaf-export); }
+    .mk-vein { stroke: #f7f6f1; }
+    .mk-dot { fill: #2e5a4b; }
+
+    @media (prefers-color-scheme: dark) {
+      .mk-moon { fill: #f2f5f3; }
+      .mk-leaf { fill: #6eb79f; }
+      .mk-vein { stroke: #111a15; }
+      .mk-dot { fill: #6eb79f; }
+    }
+  </style>
+
+  <!-- The Moon: A peaceful, sweeping crescent cradle -->
+  <path
+    d="M 68 28
+       C 52 28, 22 40, 22 66
+       C 22 84, 38 90, 56 90
+       C 74 90, 84 76, 84 62
+       C 84 52, 79 46, 75 42
+       C 78 52, 75 74, 55 76
+       C 36 78, 32 58, 48 40
+       C 56 32, 62 30, 68 28 Z"
+    class="mk-moon"
+  />
+
+  <!-- The Leaf Hat: Gracefully crowning and sheltering the top of the moon -->
+  <path
+    d="M 40 32
+       C 32 18, 52 8, 74 12
+       C 78 22, 70 36, 40 32 Z"
+    class="mk-leaf"
+  />
+
+  <!-- Leaf Stem & Natural Spine Vein -->
+  <path
+    d="M 38 34 Q 56 22 74 12"
+    class="mk-vein"
+    stroke-width="2"
+    stroke-linecap="round"
+  />
+
+  <!-- Conversational Ember -->
+  <circle
+    cx="58"
+    cy="58"
+    r="4.5"
+    class="mk-dot"
+  />
+</svg>
