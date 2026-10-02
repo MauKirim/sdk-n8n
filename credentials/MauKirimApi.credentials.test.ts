@@ -37,6 +37,13 @@ describe('MauKirimApi credential', () => {
 		expect(property('baseUrl').default).toBe('https://app.maukirim.com/api/v1');
 	});
 
+	it('declares light and dark icon variants, as n8n requires of a credential', () => {
+		expect(credential.icon).toEqual({
+			light: 'file:maukirim.svg',
+			dark: 'file:maukirim-dark.svg',
+		});
+	});
+
 	it('tests the credential with a read request against the configured base URL', () => {
 		expect(credential.test).toEqual({
 			request: {

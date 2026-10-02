@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-maukirim",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "n8n community node for MauKirim — WhatsApp OTP codes, templated notifications and managed rented numbers.",
   "keywords": [
     "n8n-community-node-package",
@@ -23,7 +23,8 @@
   },
   "main": "dist/nodes/MauKirim/MauKirim.node.js",
   "scripts": {
-    "build": "tsc && node scripts/copy-assets.mjs",
+    "build": "tsc && node scripts/copy-assets.mjs && node scripts/verify-assets.mjs",
+    "verify:assets": "node scripts/verify-assets.mjs",
     "test": "jest"
   },
   "files": [

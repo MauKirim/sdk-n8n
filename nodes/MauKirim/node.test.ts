@@ -3,11 +3,10 @@ import {
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeProperties,
+	NodeApiError,
 	NodeConnectionTypes,
 	NodeOperationError,
 } from 'n8n-workflow';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 
 import { MauKirim } from './MauKirim.node';
 import { HttpRequestOptions } from './transport';
@@ -45,6 +44,7 @@ function makeContext(
 		helpers: {
 			httpRequest: async (options: HttpRequestOptions) => {
 				calls.push(options);
+				if (response instanceof Error) throw response;
 				return response;
 			},
 			returnJsonArray: (data: IDataObject | IDataObject[]) =>
@@ -79,6 +79,10 @@ function optionValues(properties: INodeProperties): unknown[] {
 	return ((properties.options ?? []) as Array<{ value: unknown }>).map((option) => option.value);
 }
 
+function optionNames(properties: INodeProperties): string[] {
+	return ((properties.options ?? []) as Array<{ name: string }>).map((option) => option.name);
+}
+
 function operationProperty(resource: string): INodeProperties {
 	const matches = node.description.properties.filter(
 		(candidate) =>
@@ -104,9 +108,13 @@ describe('MauKirim description', () => {
 		expect(node.description.outputs).toEqual([NodeConnectionTypes.Main]);
 	});
 
-	it('bundles the icon it declares, so n8n renders the node', () => {
-		expect(node.description.icon).toBe('file:maukirim.svg');
-		expect(existsSync(join(__dirname, 'maukirim.svg'))).toBe(true);
+	// n8n requires themed variants; the files themselves are checked by scripts/verify-assets.mjs,
+	// because a community node may not import node:fs (n8n Cloud disallows it).
+	it('declares light and dark icon variants, so n8n renders the node in both themes', () => {
+		expect(node.description.icon).toEqual({
+			light: 'file:maukirim.svg',
+			dark: 'file:maukirim-dark.svg',
+		});
 	});
 
 	it('offers the four resources', () => {
@@ -121,13 +129,19 @@ describe('MauKirim description', () => {
 	});
 
 	it('limits the OTP purpose to the documented enum', () => {
-		expect(optionValues(property('purpose'))).toEqual([
+		expect([...optionValues(property('purpose'))].sort()).toEqual([
 			'login',
-			'signup',
-			'payment',
 			'passwordReset',
+			'payment',
 			'phoneChange',
+			'signup',
 		]);
+	});
+
+	it('orders the OTP purpose options alphabetically by name, as n8n requires', () => {
+		const names = optionNames(property('purpose'));
+		expect(names).toEqual([...names].sort());
+		expect(names).toEqual(['Login', 'Password Reset', 'Payment', 'Phone Change', 'Sign Up']);
 	});
 
 	it('limits the presence to the documented enum', () => {
@@ -425,6 +439,12 @@ describe('MauKirim execute', () => {
 		expect(calls[0].body).toBeUndefined();
 	});
 
+	it('defaults the deliveries limit to 50 with the description n8n requires', () => {
+		const limit = property('limit');
+		expect(limit.default).toBe(50);
+		expect(limit.description).toBe('Max number of results to return');
+	});
+
 	it('lists webhook deliveries with the device, limit and offset', async () => {
 		const response = { ok: true, deliveries: [], hasMore: false };
 		const { items, calls } = await run(
@@ -517,6 +537,15 @@ describe('MauKirim execute', () => {
 			'+62812345671',
 		]);
 		expect(items).toEqual([{ json: { ok: true, challengeId: 'ch_1' } }, { json: { ok: true, challengeId: 'ch_1' } }]);
+	});
+
+	it('wraps an unexpected transport failure as a NodeApiError, as n8n requires', async () => {
+		const calls: HttpRequestOptions[] = [];
+		const context = makeContext({ resource: 'device', operation: 'list' }, calls, new Error('socket hang up'));
+
+		const thrown = await node.execute.call(context).catch((error: unknown) => error);
+
+		expect(thrown).toBeInstanceOf(NodeApiError);
 	});
 
 	it('turns a failed API envelope into a node operation error carrying the code', async () => {

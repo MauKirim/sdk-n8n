@@ -1,9 +1,17 @@
-import { ICredentialType, INodeProperties } from 'n8n-workflow';
+import {
+	IAuthenticateGeneric,
+	ICredentialTestRequest,
+	ICredentialType,
+	INodeProperties,
+} from 'n8n-workflow';
 
 export class MauKirimApi implements ICredentialType {
 	name = 'mauKirimApi';
 
 	displayName = 'MauKirim API';
+
+	// n8n requires a themed icon on every credential, resolved relative to this file.
+	icon = { light: 'file:maukirim.svg', dark: 'file:maukirim-dark.svg' } as const;
 
 	documentationUrl = 'https://maukirim.com';
 
@@ -27,8 +35,8 @@ export class MauKirimApi implements ICredentialType {
 		},
 	];
 
-	authenticate = {
-		type: 'generic' as const,
+	authenticate: IAuthenticateGeneric = {
+		type: 'generic',
 		properties: {
 			headers: {
 				Authorization: '=Bearer {{$credentials.apiKey}}',
@@ -36,11 +44,12 @@ export class MauKirimApi implements ICredentialType {
 		},
 	};
 
-	test = {
+	// GET /devices needs only the `read` scope, so it is the cheapest way to prove a key works.
+	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.baseUrl}}',
 			url: '/devices',
-			method: 'GET' as const,
+			method: 'GET',
 		},
 	};
 }

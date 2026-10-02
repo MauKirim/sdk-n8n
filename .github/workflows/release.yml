@@ -44,3 +44,19 @@ jobs:
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify the published package with n8n's scanner
+        # n8n rejects a community package whose source or tarball breaks its lint gate, so the
+        # release is not considered done until their own scanner accepts what we just published.
+        run: |
+          pkg="$(node -p "require('./package.json').version")"
+          for attempt in 1 2 3 4 5 6; do
+            if npx --yes @n8n/scan-community-package@beta "n8n-nodes-maukirim@${pkg}"; then
+              echo "n8n scanner accepted n8n-nodes-maukirim@${pkg}"
+              exit 0
+            fi
+            echo "::warning::scanner attempt ${attempt} failed; the registry may still be propagating"
+            sleep 45
+          done
+          echo "::error::n8n's scanner rejected n8n-nodes-maukirim@${pkg}"
+          exit 1

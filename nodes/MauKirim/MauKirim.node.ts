@@ -1,9 +1,12 @@
 import {
 	IDataObject,
 	IExecuteFunctions,
+	INode,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	JsonObject,
+	NodeApiError,
 	NodeConnectionTypes,
 	NodeOperationError,
 } from 'n8n-workflow';
@@ -56,6 +59,27 @@ const ERROR_HINTS: Record<string, string> = {
 	not_found: 'The referenced record does not exist for this account.',
 	server_error: 'The API hit an unexpected error.',
 };
+
+/**
+ * n8n requires every failure a node raises to be a `NodeOperationError` or a `NodeApiError`.
+ * An error this node already classified keeps its own type and message; a MauKirim envelope becomes
+ * an operation error described by its code; anything else is wrapped as an API error.
+ */
+function classifyFailure(error: unknown, node: INode, itemIndex: number): Error {
+	if (error instanceof NodeOperationError || error instanceof NodeApiError) {
+		return error;
+	}
+
+	if (error instanceof MauKirimApiError) {
+		return new NodeOperationError(node, error.message, {
+			itemIndex,
+			description:
+				ERROR_HINTS[error.code] ?? `MauKirim API responded with the code "${error.code}".`,
+		});
+	}
+
+	return new NodeApiError(node, error as JsonObject, { itemIndex });
+}
 
 interface MauKirimCredentials {
 	apiKey: string;
@@ -244,7 +268,7 @@ export class MauKirim implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'MauKirim',
 		name: 'mauKirim',
-		icon: 'file:maukirim.svg',
+		icon: { light: 'file:maukirim.svg', dark: 'file:maukirim-dark.svg' },
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
@@ -334,10 +358,10 @@ export class MauKirim implements INodeType {
 				displayOptions: { show: { resource: ['otp'], operation: ['send'] } },
 				options: [
 					{ name: 'Login', value: 'login' },
-					{ name: 'Sign Up', value: 'signup' },
-					{ name: 'Payment', value: 'payment' },
 					{ name: 'Password Reset', value: 'passwordReset' },
+					{ name: 'Payment', value: 'payment' },
 					{ name: 'Phone Change', value: 'phoneChange' },
+					{ name: 'Sign Up', value: 'signup' },
 				],
 				description: 'Why the code is being sent. It is part of the idempotency fingerprint.',
 			},
@@ -616,10 +640,10 @@ export class MauKirim implements INodeType {
 				displayName: 'Limit',
 				name: 'limit',
 				type: 'number',
-				default: 25,
+				default: 50,
 				typeOptions: { minValue: 1, maxValue: 100 },
 				displayOptions: { show: { resource: ['webhook'], operation: ['deliveries'] } },
-				description: 'Number of deliveries to return, between 1 and 100',
+				description: 'Max number of results to return',
 			},
 			{
 				displayName: 'Offset',
@@ -642,14 +666,7 @@ export class MauKirim implements INodeType {
 				const response = await executeOperation(this, itemIndex);
 				returnData.push(...this.helpers.returnJsonArray(response));
 			} catch (error) {
-				if (error instanceof MauKirimApiError) {
-					throw new NodeOperationError(this.getNode(), error.message, {
-						itemIndex,
-						description:
-							ERROR_HINTS[error.code] ?? `MauKirim API responded with the code "${error.code}".`,
-					});
-				}
-				throw error;
+				throw classifyFailure(error, this.getNode(), itemIndex);
 			}
 		}
 

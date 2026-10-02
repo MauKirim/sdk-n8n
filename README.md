@@ -61,6 +61,9 @@ needs (`otp`, `notification`, `read`, `device`, `send`, `webhook`).
 
 Each item returns the raw MauKirim success envelope as JSON, e.g. `{"ok":true,"challengeId":"…","batchId":"…","expiresAt":"…"}`.
 
+**List Deliveries** sends a `limit` between 1 and 100; the node's default is 50, while the API's own
+default (when the parameter is absent) is 25.
+
 ### Idempotency
 
 The three routes that charge or send — `POST /otp/send`, `POST /messages/send`,
