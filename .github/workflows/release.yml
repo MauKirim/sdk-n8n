@@ -50,13 +50,28 @@ jobs:
         # release is not considered done until their own scanner accepts what we just published.
         run: |
           pkg="$(node -p "require('./package.json').version")"
-          for attempt in 1 2 3 4 5 6; do
-            if npx --yes @n8n/scan-community-package@beta "n8n-nodes-maukirim@${pkg}"; then
-              echo "n8n scanner accepted n8n-nodes-maukirim@${pkg}"
-              exit 0
-            fi
-            echo "::warning::scanner attempt ${attempt} failed; the registry may still be propagating"
-            sleep 45
+          registry_url="https://registry.npmjs.org/n8n-nodes-maukirim/${pkg}"
+
+          # A publish can take several minutes to become visible, and the scanner cannot see an
+          # unpublished version, so wait for the registry first.
+          code=""
+          for attempt in $(seq 1 30); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "$registry_url")"
+            [ "$code" = "200" ] && break
+            echo "waiting for ${pkg} to appear on the registry (attempt ${attempt}, HTTP ${code})"
+            sleep 20
           done
-          echo "::error::n8n's scanner rejected n8n-nodes-maukirim@${pkg}"
-          exit 1
+          if [ "$code" != "200" ]; then
+            echo "::error::n8n-nodes-maukirim@${pkg} never became available on the registry"
+            exit 1
+          fi
+
+          # The scanner exits 0 even when it reports a failure, so the verdict has to be read from
+          # its output rather than from the exit code.
+          output="$(npx --yes @n8n/scan-community-package@beta "n8n-nodes-maukirim@${pkg}" 2>&1 || true)"
+          printf '%s\n' "$output"
+          if ! printf '%s' "$output" | grep -q 'passed all security checks'; then
+            echo "::error::n8n's scanner did not accept n8n-nodes-maukirim@${pkg}"
+            exit 1
+          fi
+          echo "n8n's scanner accepted n8n-nodes-maukirim@${pkg}"
