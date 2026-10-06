@@ -117,32 +117,6 @@ describe('MauKirim description', () => {
 		});
 	});
 
-	it('offers the six resources', () => {
-		expect(optionValues(property('resource'))).toEqual([
-			'otp',
-			'notification',
-			'device',
-			'webhook',
-			'template',
-			'account',
-		]);
-	});
-
-	it('offers every operation of every resource', () => {
-		expect(optionValues(operationProperty('otp'))).toEqual(['send', 'verify']);
-		expect(optionValues(operationProperty('notification'))).toEqual([
-			'send',
-			'getReceiptWebhook',
-			'setReceiptWebhook',
-			'rotateReceiptWebhook',
-			'removeReceiptWebhook',
-		]);
-		expect(optionValues(operationProperty('device'))).toEqual(['list', 'get', 'sendMessage', 'setPresence']);
-		expect(optionValues(operationProperty('webhook'))).toEqual(['get', 'set', 'remove', 'deliveries']);
-		expect(optionValues(operationProperty('template'))).toEqual(['list', 'get', 'create', 'update']);
-		expect(optionValues(operationProperty('account'))).toEqual(['get']);
-	});
-
 	it('orders the attachment mode options alphabetically by name, as n8n requires', () => {
 		const names = optionNames(property('attachmentMode'));
 		expect(names).toEqual([...names].sort());

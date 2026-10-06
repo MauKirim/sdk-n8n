@@ -107,8 +107,7 @@ npm test        # jest (no external API calls)
 ```
 
 The HTTP layer lives in `nodes/MauKirim/transport.ts` and takes the request function as an argument,
-so operation tests run offline. The credential test uses a temporary loopback server to exercise
-the scope-neutral connection probe.
+so operation tests run offline.
 
 ## Publishing
 

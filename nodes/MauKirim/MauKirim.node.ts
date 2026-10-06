@@ -345,14 +345,9 @@ export class MauKirim implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						name: 'OTP',
-						value: 'otp',
-						description: 'Send and verify a one-time passcode over WhatsApp',
-					},
-					{
-						name: 'Notification',
-						value: 'notification',
-						description: 'Send a templated notification from a shared MauKirim number',
+						name: 'Account',
+						value: 'account',
+						description: 'Read the account, credit balance and key scopes',
 					},
 					{
 						name: 'Device',
@@ -360,9 +355,14 @@ export class MauKirim implements INodeType {
 						description: 'Operate a WhatsApp number rented from MauKirim',
 					},
 					{
-						name: 'Webhook',
-						value: 'webhook',
-						description: 'Manage where a rented number forwards its events',
+						name: 'Notification',
+						value: 'notification',
+						description: 'Send a templated notification from a shared MauKirim number',
+					},
+					{
+						name: 'OTP',
+						value: 'otp',
+						description: 'Send and verify a one-time passcode over WhatsApp',
 					},
 					{
 						name: 'Template',
@@ -370,9 +370,9 @@ export class MauKirim implements INodeType {
 						description: 'List, read, propose and edit notification templates',
 					},
 					{
-						name: 'Account',
-						value: 'account',
-						description: 'Read the account, credit balance and key scopes',
+						name: 'Webhook',
+						value: 'webhook',
+						description: 'Manage where a rented number forwards its events',
 					},
 				],
 				default: 'otp',
@@ -467,22 +467,16 @@ export class MauKirim implements INodeType {
 				displayOptions: { show: { resource: ['notification'] } },
 				options: [
 					{
-						name: 'Send',
-						value: 'send',
-						action: 'Send a notification',
-						description: 'Send an approved template from a shared MauKirim number',
-					},
-					{
 						name: 'Get Receipt Webhook',
 						value: 'getReceiptWebhook',
 						action: 'Get the receipt webhook',
 						description: 'Read where delivered and read receipts are sent',
 					},
 					{
-						name: 'Set Receipt Webhook',
-						value: 'setReceiptWebhook',
-						action: 'Set the receipt webhook',
-						description: 'Create or update where delivered and read receipts are sent. The signing secret is returned only on creation.',
+						name: 'Remove Receipt Webhook',
+						value: 'removeReceiptWebhook',
+						action: 'Remove the receipt webhook',
+						description: 'Delete the receipt destination and its delivery log',
 					},
 					{
 						name: 'Rotate Receipt Webhook Secret',
@@ -491,10 +485,16 @@ export class MauKirim implements INodeType {
 						description: 'Issue a new signing secret; the old one stops verifying immediately',
 					},
 					{
-						name: 'Remove Receipt Webhook',
-						value: 'removeReceiptWebhook',
-						action: 'Remove the receipt webhook',
-						description: 'Delete the receipt destination and its delivery log',
+						name: 'Send',
+						value: 'send',
+						action: 'Send a notification',
+						description: 'Send an approved template from a shared MauKirim number',
+					},
+					{
+						name: 'Set Receipt Webhook',
+						value: 'setReceiptWebhook',
+						action: 'Set the receipt webhook',
+						description: 'Create or update where delivered and read receipts are sent. The signing secret is returned only on creation.',
 					},
 				],
 				default: 'send',
