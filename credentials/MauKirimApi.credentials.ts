@@ -44,11 +44,11 @@ export class MauKirimApi implements ICredentialType {
 		},
 	};
 
-	// GET /devices needs only the `read` scope, so it is the cheapest way to prove a key works.
+	// GET /account accepts any valid key, including notification-only and OTP-only keys.
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.baseUrl}}',
-			url: '/devices',
+			url: '/account',
 			method: 'GET',
 		},
 	};

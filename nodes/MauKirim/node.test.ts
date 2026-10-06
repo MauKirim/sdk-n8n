@@ -117,15 +117,36 @@ describe('MauKirim description', () => {
 		});
 	});
 
-	it('offers the four resources', () => {
-		expect(optionValues(property('resource'))).toEqual(['otp', 'notification', 'device', 'webhook']);
+	it('offers the six resources', () => {
+		expect(optionValues(property('resource'))).toEqual([
+			'otp',
+			'notification',
+			'device',
+			'webhook',
+			'template',
+			'account',
+		]);
 	});
 
 	it('offers every operation of every resource', () => {
 		expect(optionValues(operationProperty('otp'))).toEqual(['send', 'verify']);
-		expect(optionValues(operationProperty('notification'))).toEqual(['send']);
+		expect(optionValues(operationProperty('notification'))).toEqual([
+			'send',
+			'getReceiptWebhook',
+			'setReceiptWebhook',
+			'rotateReceiptWebhook',
+			'removeReceiptWebhook',
+		]);
 		expect(optionValues(operationProperty('device'))).toEqual(['list', 'get', 'sendMessage', 'setPresence']);
 		expect(optionValues(operationProperty('webhook'))).toEqual(['get', 'set', 'remove', 'deliveries']);
+		expect(optionValues(operationProperty('template'))).toEqual(['list', 'get', 'create', 'update']);
+		expect(optionValues(operationProperty('account'))).toEqual(['get']);
+	});
+
+	it('orders the attachment mode options alphabetically by name, as n8n requires', () => {
+		const names = optionNames(property('attachmentMode'));
+		expect(names).toEqual([...names].sort());
+		expect(optionValues(property('attachmentMode'))).toEqual(['none', 'per_send', 'static']);
 	});
 
 	it('limits the OTP purpose to the documented enum', () => {
@@ -311,6 +332,93 @@ describe('MauKirim execute', () => {
 
 		expect(error).toBeInstanceOf(NodeOperationError);
 		expect((error as Error).message).toMatch(/variables/i);
+	});
+
+	it('manages the notification receipt webhook', async () => {
+		const get = await run({ resource: 'notification', operation: 'getReceiptWebhook' });
+		expect(get.calls[0].method).toBe('GET');
+		expect(get.calls[0].url).toBe(`${BASE}/notifications/webhook`);
+		expect(get.calls[0].body).toBeUndefined();
+
+		const set = await run({
+			resource: 'notification',
+			operation: 'setReceiptWebhook',
+			url: 'https://example.com/receipts',
+			active: false,
+		});
+		expect(set.calls[0].method).toBe('POST');
+		expect(set.calls[0].url).toBe(`${BASE}/notifications/webhook`);
+		expect(set.calls[0].body).toEqual({ url: 'https://example.com/receipts', active: false });
+
+		const rotate = await run({ resource: 'notification', operation: 'rotateReceiptWebhook' });
+		expect(rotate.calls[0].method).toBe('PUT');
+
+		const remove = await run({ resource: 'notification', operation: 'removeReceiptWebhook' });
+		expect(remove.calls[0].method).toBe('DELETE');
+		expect(remove.calls[0].url).toBe(`${BASE}/notifications/webhook`);
+	});
+
+	it('lists templates', async () => {
+		const response = { ok: true, templates: [{ id: 'shopify_order_paid_en', variables: ['order_number'] }] };
+		const { items, calls } = await run({ resource: 'template', operation: 'list' }, response);
+
+		expect(items).toEqual([{ json: response }]);
+		expect(calls[0].method).toBe('GET');
+		expect(calls[0].url).toBe(`${BASE}/templates`);
+	});
+
+	it('gets one template, escaping its id', async () => {
+		const { calls } = await run({ resource: 'template', operation: 'get', templateId: 'tpl/1' });
+
+		expect(calls[0].method).toBe('GET');
+		expect(calls[0].url).toBe(`${BASE}/templates/tpl%2F1`);
+	});
+
+	it('proposes a template without an attachment upload id when none is given', async () => {
+		const { calls } = await run({
+			resource: 'template',
+			operation: 'create',
+			templateName: 'Shipped',
+			templateBody: 'Order {{order_number}} shipped.',
+		});
+
+		expect(calls[0].method).toBe('POST');
+		expect(calls[0].url).toBe(`${BASE}/templates`);
+		expect(calls[0].body).toEqual({
+			name: 'Shipped',
+			body: 'Order {{order_number}} shipped.',
+			attachmentMode: 'none',
+		});
+	});
+
+	it('updates a static template with its attachment', async () => {
+		const { calls } = await run({
+			resource: 'template',
+			operation: 'update',
+			templateId: 'tpl_1',
+			templateName: 'Invoice',
+			templateBody: 'Invoice {{order_number}}',
+			attachmentMode: 'static',
+			attachmentUploadId: 'media_1',
+		});
+
+		expect(calls[0].method).toBe('PUT');
+		expect(calls[0].url).toBe(`${BASE}/templates/tpl_1`);
+		expect(calls[0].body).toEqual({
+			name: 'Invoice',
+			body: 'Invoice {{order_number}}',
+			attachmentMode: 'static',
+			attachmentUploadId: 'media_1',
+		});
+	});
+
+	it('reads the account', async () => {
+		const response = { ok: true, balance: { credits: 600, currency: 'IDR' }, scopes: ['read'] };
+		const { items, calls } = await run({ resource: 'account', operation: 'get' }, response);
+
+		expect(items).toEqual([{ json: response }]);
+		expect(calls[0].method).toBe('GET');
+		expect(calls[0].url).toBe(`${BASE}/account`);
 	});
 
 	it('lists devices', async () => {

@@ -179,6 +179,58 @@ function buildOperation(context: IExecuteFunctions, itemIndex: number): Operatio
 					idempotencyKey: required('idempotencyKey'),
 				};
 			}
+			if (operation === 'getReceiptWebhook') {
+				return { method: 'GET', path: '/notifications/webhook' };
+			}
+			if (operation === 'setReceiptWebhook') {
+				return {
+					method: 'POST',
+					path: '/notifications/webhook',
+					body: {
+						url: required('url'),
+						active: context.getNodeParameter('active', itemIndex, true) as boolean,
+					},
+				};
+			}
+			if (operation === 'rotateReceiptWebhook') {
+				return { method: 'PUT', path: '/notifications/webhook' };
+			}
+			if (operation === 'removeReceiptWebhook') {
+				return { method: 'DELETE', path: '/notifications/webhook' };
+			}
+			break;
+
+		case 'template': {
+			if (operation === 'list') {
+				return { method: 'GET', path: '/templates' };
+			}
+
+			const path = (): string => `/templates/${encodeURIComponent(required('templateId'))}`;
+			if (operation === 'get') {
+				return { method: 'GET', path: path() };
+			}
+
+			if (operation === 'create' || operation === 'update') {
+				const body: IDataObject = {
+					name: required('templateName'),
+					body: required('templateBody'),
+					attachmentMode: context.getNodeParameter('attachmentMode', itemIndex, 'none') as string,
+				};
+				const attachmentUploadId = context.getNodeParameter('attachmentUploadId', itemIndex, '') as string;
+				if (attachmentUploadId !== '') {
+					body.attachmentUploadId = attachmentUploadId;
+				}
+				return operation === 'create'
+					? { method: 'POST', path: '/templates', body }
+					: { method: 'PUT', path: path(), body };
+			}
+			break;
+		}
+
+		case 'account':
+			if (operation === 'get') {
+				return { method: 'GET', path: '/account' };
+			}
 			break;
 
 		case 'device': {
@@ -312,6 +364,16 @@ export class MauKirim implements INodeType {
 						value: 'webhook',
 						description: 'Manage where a rented number forwards its events',
 					},
+					{
+						name: 'Template',
+						value: 'template',
+						description: 'List, read, propose and edit notification templates',
+					},
+					{
+						name: 'Account',
+						value: 'account',
+						description: 'Read the account, credit balance and key scopes',
+					},
 				],
 				default: 'otp',
 			},
@@ -410,8 +472,50 @@ export class MauKirim implements INodeType {
 						action: 'Send a notification',
 						description: 'Send an approved template from a shared MauKirim number',
 					},
+					{
+						name: 'Get Receipt Webhook',
+						value: 'getReceiptWebhook',
+						action: 'Get the receipt webhook',
+						description: 'Read where delivered and read receipts are sent',
+					},
+					{
+						name: 'Set Receipt Webhook',
+						value: 'setReceiptWebhook',
+						action: 'Set the receipt webhook',
+						description: 'Create or update where delivered and read receipts are sent. The signing secret is returned only on creation.',
+					},
+					{
+						name: 'Rotate Receipt Webhook Secret',
+						value: 'rotateReceiptWebhook',
+						action: 'Rotate the receipt webhook secret',
+						description: 'Issue a new signing secret; the old one stops verifying immediately',
+					},
+					{
+						name: 'Remove Receipt Webhook',
+						value: 'removeReceiptWebhook',
+						action: 'Remove the receipt webhook',
+						description: 'Delete the receipt destination and its delivery log',
+					},
 				],
 				default: 'send',
+			},
+			{
+				displayName: 'URL',
+				name: 'url',
+				type: 'string',
+				default: '',
+				required: true,
+				placeholder: 'https://example.com/maukirim/receipts',
+				displayOptions: { show: { resource: ['notification'], operation: ['setReceiptWebhook'] } },
+				description: 'HTTPS destination on a public host, without credentials, query or fragment',
+			},
+			{
+				displayName: 'Active',
+				name: 'active',
+				type: 'boolean',
+				default: true,
+				displayOptions: { show: { resource: ['notification'], operation: ['setReceiptWebhook'] } },
+				description: 'Whether MauKirim sends receipts to this destination',
 			},
 			{
 				displayName: 'Phone Number',
@@ -653,6 +757,112 @@ export class MauKirim implements INodeType {
 				typeOptions: { minValue: 0 },
 				displayOptions: { show: { resource: ['webhook'], operation: ['deliveries'] } },
 				description: 'Number of deliveries to skip',
+			},
+
+			// Template
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: { show: { resource: ['template'] } },
+				options: [
+					{
+						name: 'List',
+						value: 'list',
+						action: 'List templates',
+						description: 'List the account templates and the shared system templates, with their variables',
+					},
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get a template',
+						description: 'Get one template with its variables and review status',
+					},
+					{
+						name: 'Create',
+						value: 'create',
+						action: 'Propose a template',
+						description: 'Propose a template for review. It cannot be sent until approved.',
+					},
+					{
+						name: 'Update',
+						value: 'update',
+						action: 'Update a template',
+						description: 'Replace a template this account owns. It goes back to review.',
+					},
+				],
+				default: 'list',
+			},
+			{
+				displayName: 'Template ID',
+				name: 'templateId',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: { show: { resource: ['template'], operation: ['get', 'update'] } },
+				description: 'ID of the template, as returned by the list operation',
+			},
+			{
+				displayName: 'Name',
+				name: 'templateName',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: { show: { resource: ['template'], operation: ['create', 'update'] } },
+				description: 'Display name, 1 to 64 characters',
+			},
+			{
+				displayName: 'Body',
+				name: 'templateBody',
+				type: 'string',
+				default: '',
+				required: true,
+				typeOptions: { rows: 4 },
+				placeholder: 'Hi {{customer_first_name}}, order {{order_number}} has shipped.',
+				displayOptions: { show: { resource: ['template'], operation: ['create', 'update'] } },
+				description: 'Message text, 1 to 1024 characters, with {{lower_snake}} placeholders',
+			},
+			{
+				displayName: 'Attachment Mode',
+				name: 'attachmentMode',
+				type: 'options',
+				default: 'none',
+				displayOptions: { show: { resource: ['template'], operation: ['create', 'update'] } },
+				options: [
+					{ name: 'None', value: 'none' },
+					{ name: 'Per Send', value: 'per_send' },
+					{ name: 'Static', value: 'static' },
+				],
+				description: 'Whether messages carry no file, a file chosen per send, or the same file every time',
+			},
+			{
+				displayName: 'Attachment Upload ID',
+				name: 'attachmentUploadId',
+				type: 'string',
+				default: '',
+				displayOptions: {
+					show: { resource: ['template'], operation: ['create', 'update'], attachmentMode: ['static'] },
+				},
+				description: 'Media ID returned by POST /messages/media, sent with every message of a static template',
+			},
+
+			// Account
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: { show: { resource: ['account'] } },
+				options: [
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get the account',
+						description: 'Get the account, credit balance, plan, usage and the scopes of the API key',
+					},
+				],
+				default: 'get',
 			},
 		],
 	};

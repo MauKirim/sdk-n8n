@@ -39,9 +39,10 @@ once and starts with `mk_live_`. Then, in n8n:
 2. Paste the key into **API Key** — it is sent as `Authorization: Bearer mk_live_…`.
 3. Leave **Base URL** at `https://app.maukirim.com/api/v1` unless you target another deployment.
 
-Click **Test**: the credential is verified with `GET /devices`, so the key used for the test needs the
-`read` scope. Keys are scoped per route — see the MauKirim documentation for the scope each operation
-needs (`otp`, `notification`, `read`, `device`, `send`, `webhook`).
+Click **Test**: the credential uses `GET /account`, which accepts any valid key regardless of scope.
+Operations enforce their own scopes (`otp`, `notification`, `read`, `device`, `send`, `webhook`);
+for example, sending an approved notification requires `notification`, not `read`. An inactive
+account can still return `403 forbidden` on the credential test.
 
 ## Operations
 
@@ -50,6 +51,15 @@ needs (`otp`, `notification`, `read`, `device`, `send`, `webhook`).
 | OTP | Send | `POST /otp/send` | Phone Number, Purpose, Idempotency Key |
 | OTP | Verify | `POST /otp/verify` | Challenge ID, Code |
 | Notification | Send | `POST /messages/send` | Phone Number, Template ID, Variables (JSON), Attachment Upload ID, Idempotency Key |
+| Notification | Get Receipt Webhook | `GET /notifications/webhook` | — |
+| Notification | Set Receipt Webhook | `POST /notifications/webhook` | URL, Active |
+| Notification | Rotate Receipt Webhook Secret | `PUT /notifications/webhook` | — |
+| Notification | Remove Receipt Webhook | `DELETE /notifications/webhook` | — |
+| Template | List | `GET /templates` | — |
+| Template | Get | `GET /templates/{id}` | Template ID |
+| Template | Create | `POST /templates` | Name, Body, Attachment Mode, Attachment Upload ID |
+| Template | Update | `PUT /templates/{id}` | Template ID, Name, Body, Attachment Mode, Attachment Upload ID |
+| Account | Get | `GET /account` | — |
 | Device | List | `GET /devices` | — |
 | Device | Get | `GET /devices/{id}` | Device ID |
 | Device | Send Message | `POST /devices/{id}/messages` | Device ID, Phone Number, Message, Idempotency Key |
@@ -93,11 +103,12 @@ used, or out-of-attempts code — that is a successful node run, not an error.
 ```bash
 npm install
 npm run build   # tsc -> dist/
-npm test        # jest (no network: the HTTP layer is injected)
+npm test        # jest (no external API calls)
 ```
 
 The HTTP layer lives in `nodes/MauKirim/transport.ts` and takes the request function as an argument,
-so both unit suites run entirely offline.
+so operation tests run offline. The credential test uses a temporary loopback server to exercise
+the scope-neutral connection probe.
 
 ## Publishing
 
